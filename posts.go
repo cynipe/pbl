@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -34,7 +36,10 @@ func GetPosts(tags []string) (posts *Posts, err error) {
 	if len(tags) > 0 {
 		options["tag"] = strings.Join(tags, " ")
 	}
-	url, _ := urlWithAuth("/v1/posts/all", options)
+	url, err := urlWithAuth("/v1/posts/all", options)
+	if err != nil {
+		return
+	}
 	res, err := http.Get(url.String())
 	if err != nil {
 		return
@@ -59,7 +64,11 @@ func urlWithAuth(pathURL string, options map[string]string) (url.URL, error) {
 	u.Scheme = "https"
 	u.Host = path.Join("api.pinboard.in", pathURL)
 	q := u.Query()
-	q.Set("auth_token", "")
+	if token, ok := syscall.Getenv("PINBOARD_AUTH_TOKEN"); ok {
+		q.Set("auth_token", token)
+	} else {
+		return url.URL{}, fmt.Errorf("`PINBOARD_AUTH_TOKEN` env var is not set.")
+	}
 	for k, v := range options {
 		q.Set(k, v)
 	}
