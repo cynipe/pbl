@@ -3,13 +3,11 @@ package main
 import (
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -64,11 +62,11 @@ func urlWithAuth(pathURL string, options map[string]string) (url.URL, error) {
 	u.Scheme = "https"
 	u.Host = path.Join("api.pinboard.in", pathURL)
 	q := u.Query()
-	if token, ok := syscall.Getenv("PINBOARD_AUTH_TOKEN"); ok {
-		q.Set("auth_token", token)
-	} else {
-		return url.URL{}, fmt.Errorf("`PINBOARD_AUTH_TOKEN` env var is not set.")
+	config, err := LoadOrCreateConfig()
+	if err != nil {
+		return url.URL{}, err
 	}
+	q.Set("auth_token", config.AuthToken)
 	for k, v := range options {
 		q.Set(k, v)
 	}
